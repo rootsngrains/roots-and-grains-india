@@ -2,8 +2,4 @@
 User-agent: *
 Allow: /
 
-# Block bots from crawling cart/checkout overlay states
-Disallow: /?cart=
-Disallow: /?checkout=
-
-Sitemap: https://rootsandgrains.in/sitemap.xml
+Sitemap: https://rootsngrains.com/sitemap.xml
