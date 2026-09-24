@@ -1962,10 +1962,23 @@ function escapeHTML(str){
     .replace(/'/g,'&#39;');
 }
 
+// Looks up embedded image with fuzzy name matching (trims + lowercases both sides)
+function findEmbedded(name){
+  if(!name) return null;
+  // Exact match first
+  if(PRODUCT_IMAGES[name]) return PRODUCT_IMAGES[name];
+  // Normalised match — handles trailing spaces or sheet capitalisation differences
+  const norm = name.trim().toLowerCase();
+  for(const key of Object.keys(PRODUCT_IMAGES)){
+    if(key.trim().toLowerCase() === norm) return PRODUCT_IMAGES[key];
+  }
+  return null;
+}
+
 // Returns product image — real photo if available, SVG fallback if not
 function getImg(p){
-  // Check embedded images first
-  const embedded = PRODUCT_IMAGES[p.name];
+  // Check embedded images first (with fuzzy match)
+  const embedded = findEmbedded(p.name);
   if(embedded){
     return `<img
       src="${embedded}"
@@ -1981,20 +1994,21 @@ function getImg(p){
     const src = fileId
       ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w200`
       : url;
+    const svgFallback = getSVG(p.type).replace(/'/g,"\\'").replace(/\n/g,'');
     return `<img
       src="${src}"
       alt="${escapeHTML(p.name)}"
       style="width:100%;height:100%;object-fit:contain;object-position:center;display:block;transform:translateZ(0)"
-      onerror="this.style.display='none'"
+      onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div style=\\'display:flex;align-items:center;justify-content:center;width:100%;height:100%;\\'>${svgFallback}</div>')"
       loading="lazy"
     />`;
   }
   return getSVG(p.type);
 }
 
-// Returns background colour — transparent if image exists, coloured if SVG
+// Returns background colour — cream if image exists (embedded or sheet), coloured if SVG only
 function getImgBg(p){
-  return p.image ? 'var(--cream2)' : (BG[p.type]||BG.default);
+  return (p.image || findEmbedded(p.name)) ? 'var(--cream2)' : (BG[p.type]||BG.default);
 }
 
 const CAT_META = {
@@ -2182,8 +2196,8 @@ function renderDrawer(){
     d.className='ditem';
     d.innerHTML=`
       <div class="di-img" style="background:${getImgBg(item)}">
-        ${(PRODUCT_IMAGES[item.name]||item.image)
-          ? `<img src="${PRODUCT_IMAGES[item.name]||item.image}" alt="${escapeHTML(item.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:7px" onerror="this.style.display='none'" loading="lazy"/>`
+        ${(findEmbedded(item.name)||item.image)
+          ? `<img src="${findEmbedded(item.name)||item.image}" alt="${escapeHTML(item.name)}" style="width:100%;height:100%;object-fit:contain;border-radius:7px" onerror="this.style.display='none'" loading="lazy"/>`
           : getSVG(item.type)
         }
       </div>
@@ -2583,13 +2597,14 @@ function openPD(id){
   // Image area
   const imgEl = document.getElementById('pdImg');
   imgEl.style.background = getImgBg(p);
-  // Use embedded image first, then sheet URL, then SVG
-  const embedded = PRODUCT_IMAGES[p.name];
+  // Use embedded image first (fuzzy match), then sheet URL, then SVG
+  const embedded = findEmbedded(p.name);
   const imgSrc = embedded || p.image;
+  const popupSvg = getSVG(p.type).replace(/'/g,"\\'").replace(/\n/g,'');
   imgEl.innerHTML = `
     <button class="pd-close" onclick="closePDirect()" aria-label="Close">✕</button>
     ${imgSrc
-      ? `<img src="${imgSrc}" alt="${escapeHTML(p.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center;position:absolute;inset:0;padding:16px" onerror="this.style.display='none'" loading="lazy"/>`
+      ? `<img src="${imgSrc}" alt="${escapeHTML(p.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center;position:absolute;inset:0;padding:16px" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div style=\\'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform:scale(1.6);opacity:.9;\\'>${popupSvg}</div>')" loading="lazy"/>`
       : `<div style="transform:scale(1.6);opacity:.9">${getSVG(p.type)}</div>`
     }`;
 
