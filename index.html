@@ -1980,37 +1980,16 @@ function escapeHTML(str){
 
 // Returns product image — real photo if available, SVG fallback if not
 function getImg(p){
-  // Check embedded images first
   const embedded = PRODUCT_IMAGES[p.name];
   if(embedded){
-    return `<img
-      src="${embedded}"
-      alt="${escapeHTML(p.name)}"
-      style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;transform:translateZ(0)"
-    />`;
-  }
-  // Then check sheet image URL
-  if(p.image){
-    const url = p.image.trim();
-    const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
-    const fileId = idMatch ? idMatch[1] : null;
-    const src = fileId
-      ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w200`
-      : url;
-    return `<img
-      src="${src}"
-      alt="${escapeHTML(p.name)}"
-      style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;transform:translateZ(0)"
-      onerror="this.parentNode.innerHTML=getSVG('')"
-      loading="lazy"
-    />`;
+    return `<img src="${embedded}" alt="${escapeHTML(p.name)}" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;transform:translateZ(0)"/>`;
   }
   return getSVG(p.type);
 }
 
 // Returns background colour — transparent if image exists, coloured if SVG
 function getImgBg(p){
-  return (PRODUCT_IMAGES[p.name] || p.image) ? 'var(--cream2)' : (BG[p.type]||BG.default);
+  return PRODUCT_IMAGES[p.name] ? 'var(--cream2)' : (BG[p.type]||BG.default);
 }
 
 const CAT_META = {
@@ -2607,10 +2586,9 @@ function openPD(id){
   imgEl.style.background = getImgBg(p);
   // Use embedded image first, then sheet URL, then SVG
   const embedded = PRODUCT_IMAGES[p.name];
-  const imgSrc = embedded || p.image;
   imgEl.innerHTML = `
     <button class="pd-close" onclick="closePDirect()" aria-label="Close">✕</button>
-    ${imgSrc
+    ${embedded
       ? `<img src="${imgSrc}" alt="${escapeHTML(p.name)}" style="width:100%;height:100%;object-fit:cover;object-position:center;position:absolute;inset:0;padding:16px" onerror="this.parentNode.innerHTML=getSVG('')" loading="lazy"/>`
       : `<div style="transform:scale(1.6);opacity:.9">${getSVG(p.type)}</div>`
     }`;
